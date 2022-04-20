@@ -65,12 +65,11 @@ func TestCRUD(t *testing.T) {
 func TestTransaction(t *testing.T) {
 	ctx := context.Background()
 	client, err := Connect("test", Config{
-		Host:       "localhost:8113",
-		DbName:     "test",
-		ReplicaSet: "rs",
-		User:       "root",
-		Password:   "password",
-		Timeout:    5 * time.Second,
+		Host:     "localhost:8113",
+		DbName:   "test",
+		User:     "root",
+		Password: "password",
+		Timeout:  5 * time.Second,
 	})
 	require.NoError(t, err)
 

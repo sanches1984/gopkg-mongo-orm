@@ -13,9 +13,11 @@ import (
 const fieldCollection = "collection"
 
 var errIncorrectModelInterface = errors.New("incorrect model interface")
+var errNoReplicaSet = errors.New("use replica set for transactions")
 
 type dbWrapper struct {
-	db *mongo.Database
+	db    *mongo.Database
+	hasRS bool
 }
 
 func (w *dbWrapper) DB() *mongo.Database {
@@ -32,6 +34,9 @@ func (w *dbWrapper) Close() error {
 
 // WithTX run in transaction (need replica set!)
 func (w *dbWrapper) WithTX(ctx context.Context, fn func(context.Context) error) error {
+	if !w.hasRS {
+		return errNoReplicaSet
+	}
 	return mgm.TransactionWithCtx(ctx, func(session mongo.Session, sc mongo.SessionContext) error {
 		if err := fn(sc); err != nil {
 			rollbackErr := session.AbortTransaction(sc)

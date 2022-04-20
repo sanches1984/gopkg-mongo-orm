@@ -38,5 +38,5 @@ func Connect(appName string, config Config) (IClient, error) {
 		return nil, err
 	}
 
-	return &dbWrapper{db: db}, nil
+	return &dbWrapper{db: db, hasRS: config.ReplicaSet != ""}, nil
 }

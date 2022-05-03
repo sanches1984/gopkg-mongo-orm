@@ -6,9 +6,8 @@ import (
 	"context"
 	"errors"
 	"github.com/Kamva/mgm"
-	"github.com/Kamva/mgm/operator"
+	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/bson"
 	"testing"
 	"time"
 )
@@ -47,14 +46,18 @@ func TestCRUD(t *testing.T) {
 
 	v := &testItem{}
 	v.SetID(item.GetID())
-	err = client.GetByID(ctx, v)
+	err = client.FindByID(ctx, v)
 	require.NoError(t, err)
 	require.Equal(t, item.GetID(), v.GetID())
 	require.Equal(t, item.Name, v.Name)
 	require.Equal(t, item.Value, v.Value)
 
 	arr := []*testItem{}
-	err = client.Find(ctx, &arr, NewSearchFilter(bson.M{"name": bson.M{operator.Eq: "hello"}}, 1, 10, "created_at desc"))
+	err = client.Find(ctx, &arr, opt.List(
+		opt.Eq("name", "hello"),
+		opt.Desc("created_at"),
+		opt.Paging(1, 10),
+	))
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, len(arr), 1)
 

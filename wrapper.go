@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Kamva/mgm"
 	"github.com/rs/zerolog/log"
+	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"reflect"
@@ -76,13 +77,13 @@ func (w *dbWrapper) Upsert(ctx context.Context, rec interface{}) error {
 	return coll.UpdateWithCtx(ctx, elem, options.Update().SetUpsert(true))
 }
 
-func (w *dbWrapper) UpdateWhere(ctx context.Context, rec interface{}, filter Filter) (int64, error) {
+func (w *dbWrapper) UpdateWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
 	coll, err := getCollection(rec)
 	if err != nil {
 		return 0, err
 	}
 
-	res, err := coll.UpdateMany(ctx, filter.Conditions(), nil, options.Update().SetUpsert(true))
+	res, err := coll.UpdateMany(ctx, opt.GetFilter(opts...), nil, options.Update().SetUpsert(true))
 	if err != nil {
 		return 0, err
 	}
@@ -98,12 +99,12 @@ func (w *dbWrapper) Delete(ctx context.Context, rec interface{}) error {
 	return coll.DeleteWithCtx(ctx, elem)
 }
 
-func (w *dbWrapper) DeleteWhere(ctx context.Context, rec interface{}, filter Filter) (int64, error) {
+func (w *dbWrapper) DeleteWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
 	coll, err := getCollection(rec)
 	if err != nil {
 		return 0, err
 	}
-	res, err := coll.DeleteMany(ctx, filter.Conditions())
+	res, err := coll.DeleteMany(ctx, opt.GetFilter(opts...))
 	if err != nil {
 		return 0, err
 	}
@@ -111,7 +112,7 @@ func (w *dbWrapper) DeleteWhere(ctx context.Context, rec interface{}, filter Fil
 	return res.DeletedCount, nil
 }
 
-func (w *dbWrapper) GetByID(ctx context.Context, rec interface{}) error {
+func (w *dbWrapper) FindByID(ctx context.Context, rec interface{}) error {
 	coll, elem, err := getCollectionAndModel(rec)
 	if err != nil {
 		return err
@@ -120,17 +121,13 @@ func (w *dbWrapper) GetByID(ctx context.Context, rec interface{}) error {
 	return coll.FindByIDWithCtx(ctx, elem.GetID(), elem)
 }
 
-func (w *dbWrapper) Find(ctx context.Context, rec interface{}, filter SearchFilter) error {
+func (w *dbWrapper) Find(ctx context.Context, rec interface{}, opts []opt.FnOpt) error {
 	coll, err := getCollectionFromSlice(rec)
 	if err != nil {
 		return err
 	}
 
-	return coll.SimpleFindWithCtx(ctx, rec, filter.Conditions(),
-		options.Find().SetSkip(filter.Skip()),
-		options.Find().SetLimit(filter.Limit()),
-		options.Find().SetSort(filter.Order()),
-	)
+	return coll.SimpleFindWithCtx(ctx, rec, opt.GetFilter(opts...), opt.GetOptions(opts...))
 }
 
 func getCollectionFromSlice(arr interface{}) (*mgm.Collection, error) {

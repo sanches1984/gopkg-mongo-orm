@@ -22,9 +22,9 @@ type testItem struct {
 func TestCRUD(t *testing.T) {
 	ctx := context.Background()
 	client, err := Connect("test", Config{
-		Host:     "localhost:8113",
+		Host:     "localhost:5555",
 		DbName:   "test",
-		User:     "root",
+		User:     "admin",
 		Password: "password",
 		Timeout:  5 * time.Second,
 	})

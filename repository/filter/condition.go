@@ -13,9 +13,6 @@ type Condition interface {
 // Eq field name equal to value
 type Eq map[string]interface{}
 
-// EqLower field name equal to value
-type EqLower map[string]string
-
 // Ne field name not equal to value
 type Ne map[string]interface{}
 
@@ -62,11 +59,6 @@ func (c Eq) Condition() bson.M {
 	for key, val := range c {
 		return bson.M{key: bson.M{op.Eq: val}}
 	}
-	return nil
-}
-
-func (c EqLower) Condition() bson.M {
-	// todo
 	return nil
 }
 
@@ -120,7 +112,9 @@ func (c NotIn) Condition() bson.M {
 }
 
 func (c Contains) Condition() bson.M {
-	// todo
+	for key, val := range c {
+		return bson.M{key: bson.M{op.Regex: val}}
+	}
 	return nil
 }
 
@@ -132,13 +126,11 @@ func (c Match) Condition() bson.M {
 }
 
 func (c IsNull) Condition() bson.M {
-	// todo
-	return nil
+	return bson.M{string(c): bson.M{op.Eq: nil}}
 }
 
 func (c NotNull) Condition() bson.M {
-	// todo
-	return nil
+	return bson.M{string(c): bson.M{op.Ne: nil}}
 }
 
 func (c Or) Condition() bson.M {

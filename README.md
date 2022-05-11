@@ -10,6 +10,10 @@ Create .env file and up test docker container:
 
     make env
 
+Run db container:
+
+    make container
+
 Run tests:
 
     make test

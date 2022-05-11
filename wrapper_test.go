@@ -5,11 +5,13 @@ package mongodb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/Kamva/mgm"
+	"github.com/joho/godotenv"
 	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
 	"github.com/stretchr/testify/require"
+	"os"
 	"testing"
-	"time"
 )
 
 type testItem struct {
@@ -21,13 +23,8 @@ type testItem struct {
 
 func TestCRUD(t *testing.T) {
 	ctx := context.Background()
-	client, err := Connect("test", Config{
-		Host:     "localhost:5555",
-		DbName:   "test",
-		User:     "admin",
-		Password: "password",
-		Timeout:  5 * time.Second,
-	})
+	cfg := getConfig()
+	client, err := Connect("test", cfg)
 	require.NoError(t, err)
 
 	defer client.Close()
@@ -67,13 +64,8 @@ func TestCRUD(t *testing.T) {
 
 func TestTransaction(t *testing.T) {
 	ctx := context.Background()
-	client, err := Connect("test", Config{
-		Host:     "localhost:8113",
-		DbName:   "test",
-		User:     "root",
-		Password: "password",
-		Timeout:  5 * time.Second,
-	})
+	cfg := getConfig()
+	client, err := Connect("test", cfg)
 	require.NoError(t, err)
 
 	err = client.WithTX(ctx, func(ctx context.Context) error {
@@ -93,4 +85,19 @@ func TestTransaction(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
+}
+
+func getConfig() *Config {
+	if err := godotenv.Load(); err != nil {
+		fmt.Println(".env file not found")
+		return nil
+	}
+
+	cfg, err := ParseURL(os.Getenv("DSN"))
+	if err != nil {
+		fmt.Println("can't parse dsn")
+		return nil
+	}
+
+	return cfg
 }

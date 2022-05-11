@@ -1,0 +1,15 @@
+[
+  {
+    "insert": "books",
+    "documents": [
+      {
+        "name": "some book",
+        "value": 123
+      },
+      {
+        "name": "other book",
+        "value": 123
+      }
+    ]
+  }
+]

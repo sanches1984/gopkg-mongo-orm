@@ -115,13 +115,6 @@ func Eq(column string, val interface{}) FnOpt {
 	}
 }
 
-// EqLower adds to filter equal in lower case condition
-func EqLower(column, val string) FnOpt {
-	return func(opt *Opt) {
-		opt.Filter = append(opt.Filter, filter.EqLower{column: val})
-	}
-}
-
 // Gt adds to filter great than condition
 func Gt(column string, val interface{}) FnOpt {
 	return func(opt *Opt) {

@@ -1,17 +1,21 @@
 package mongodb
 
+import "C"
 import (
+	"context"
 	"errors"
 	"fmt"
-	"github.com/Kamva/mgm"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"time"
 )
 
-const defaultTimeout = 60 * time.Second
+const defaultTimeout = 20 * time.Second
 
 type Config struct {
+	DSN        string
+	Schema     string
 	Host       string
 	Database   string
 	ReplicaSet string
@@ -39,12 +43,7 @@ func Connect(appName string, config *Config) (IClient, error) {
 			}))
 	}
 
-	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: config.Timeout}, config.Database, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	_, _, db, err := mgm.DefaultConfigs()
+	db, err := connect(context.TODO(), config)
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +63,8 @@ func ParseURL(dsn string) (*Config, error) {
 	}
 
 	return &Config{
+		DSN:        dsn,
+		Schema:     uri.Scheme,
 		Host:       host,
 		Database:   uri.Database,
 		ReplicaSet: uri.ReplicaSet,
@@ -71,4 +72,23 @@ func ParseURL(dsn string) (*Config, error) {
 		Password:   uri.Password,
 		Timeout:    defaultTimeout,
 	}, nil
+}
+func connect(ctx context.Context, config *Config) (*mongo.Database, error) {
+	opts := options.Client().ApplyURI(config.DSN)
+	client, err := mongo.NewClient(opts)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Connect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)
+	defer cancel()
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("can't ping database: %v", err)
+	}
+
+	return client.Database(config.Database), nil
 }

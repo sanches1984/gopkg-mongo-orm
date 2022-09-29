@@ -1,7 +1,6 @@
 package filter
 
 import (
-	op "github.com/kamva/mgm/v3/operator"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -57,80 +56,80 @@ type Not []Condition
 
 func (c Eq) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Eq: val}}
+		return bson.M{key: bson.M{"$eq": val}}
 	}
 	return nil
 }
 
 func (c Ne) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Ne: val}}
+		return bson.M{key: bson.M{"$ne": val}}
 	}
 	return nil
 }
 
 func (c Lt) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Lt: val}}
+		return bson.M{key: bson.M{"$lt": val}}
 	}
 	return nil
 }
 
 func (c Le) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Lte: val}}
+		return bson.M{key: bson.M{"$lte": val}}
 	}
 	return nil
 }
 
 func (c Gt) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Gt: val}}
+		return bson.M{key: bson.M{"$gt": val}}
 	}
 	return nil
 }
 
 func (c Ge) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Gte: val}}
+		return bson.M{key: bson.M{"$gte": val}}
 	}
 	return nil
 }
 
 func (c In) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.In: val}}
+		return bson.M{key: bson.M{"$in": val}}
 	}
 	return nil
 }
 
 func (c NotIn) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Nin: val}}
+		return bson.M{key: bson.M{"$nin": val}}
 	}
 	return nil
 }
 
 func (c Contains) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Regex: val}}
+		return bson.M{key: bson.M{"$regex": val}}
 	}
 	return nil
 }
 
 func (c Match) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{op.Match: val}}
+		return bson.M{key: bson.M{"$match": val}}
 	}
 	return nil
 }
 
 func (c IsNull) Condition() bson.M {
-	return bson.M{string(c): bson.M{op.Eq: nil}}
+	return bson.M{string(c): bson.M{"$eq": nil}}
 }
 
 func (c NotNull) Condition() bson.M {
-	return bson.M{string(c): bson.M{op.Ne: nil}}
+	return bson.M{string(c): bson.M{"$ne": nil}}
 }
 
 func (c Or) Condition() bson.M {
@@ -138,7 +137,7 @@ func (c Or) Condition() bson.M {
 	for _, cond := range c {
 		result = append(result, cond.Condition())
 	}
-	return bson.M{op.Or: result}
+	return bson.M{"$or": result}
 }
 
 func (c And) Condition() bson.M {
@@ -146,7 +145,7 @@ func (c And) Condition() bson.M {
 	for _, cond := range c {
 		result = append(result, cond.Condition())
 	}
-	return bson.M{op.And: result}
+	return bson.M{"$and": result}
 }
 
 func (c Not) Condition() bson.M {
@@ -154,5 +153,5 @@ func (c Not) Condition() bson.M {
 	for _, cond := range c {
 		result = append(result, cond.Condition())
 	}
-	return bson.M{op.Not: result}
+	return bson.M{"$not": result}
 }

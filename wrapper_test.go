@@ -1,3 +1,4 @@
+//go:build !ci
 // +build !ci
 
 package mongodb
@@ -6,8 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Kamva/mgm"
 	"github.com/joho/godotenv"
+	"github.com/sanches1984/gopkg-mongo-orm/model"
 	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
 	"github.com/stretchr/testify/require"
 	"os"
@@ -15,10 +16,10 @@ import (
 )
 
 type testItem struct {
-	collection       struct{} `bson:"books"`
-	mgm.DefaultModel `bson:",inline"`
-	Name             string `bson:"name"`
-	Value            int    `bson:"value"`
+	collection         struct{} `bson:"books"`
+	model.DefaultModel `bson:",inline"`
+	Name               string `bson:"name"`
+	Value              int    `bson:"value"`
 }
 
 func TestCRUD(t *testing.T) {

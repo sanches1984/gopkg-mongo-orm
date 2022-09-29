@@ -1,7 +1,6 @@
 package filter
 
 import (
-	op "github.com/kamva/mgm/v3/operator"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -12,5 +11,5 @@ func (f Filter) Apply() bson.M {
 	for _, cond := range f {
 		result = append(result, cond.Condition())
 	}
-	return bson.M{op.And: result}
+	return bson.M{"$and": result}
 }

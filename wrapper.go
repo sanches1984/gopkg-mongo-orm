@@ -3,9 +3,9 @@ package mongodb
 import (
 	"context"
 	"errors"
-	"github.com/Kamva/mgm"
-	"github.com/rs/zerolog/log"
+	"github.com/sanches1984/gopkg-mongo-orm/model"
 	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"reflect"
@@ -35,21 +35,22 @@ func (w *dbWrapper) Close() error {
 
 // WithTX run in transaction (need replica set!)
 func (w *dbWrapper) WithTX(ctx context.Context, fn func(context.Context) error) error {
-	if !w.hasRS {
-		return errNoReplicaSet
-	}
-	return mgm.TransactionWithCtx(ctx, func(session mongo.Session, sc mongo.SessionContext) error {
-		if err := fn(sc); err != nil {
-			rollbackErr := session.AbortTransaction(sc)
-			if rollbackErr != nil {
-				// todo get logger from context
-				log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
-			}
-			return err
-		}
-
-		return session.CommitTransaction(sc)
-	})
+	return errors.New("method not implemented")
+	//if !w.hasRS {
+	//	return errNoReplicaSet
+	//}
+	//return mgm.TransactionWithCtx(ctx, func(session mongo.Session, sc mongo.SessionContext) error {
+	//	if err := fn(sc); err != nil {
+	//		rollbackErr := session.AbortTransaction(sc)
+	//		if rollbackErr != nil {
+	//			// todo get logger from context
+	//			log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
+	//		}
+	//		return err
+	//	}
+	//
+	//	return session.CommitTransaction(sc)
+	//})
 }
 
 func (w *dbWrapper) Create(ctx context.Context, rec interface{}) error {
@@ -57,7 +58,15 @@ func (w *dbWrapper) Create(ctx context.Context, rec interface{}) error {
 	if err != nil {
 		return err
 	}
-	return coll.CreateWithCtx(ctx, elem)
+
+	elem.Creating()
+	res, err := w.db.Collection(coll).InsertOne(ctx, rec)
+	if err != nil {
+		return err
+	}
+
+	elem.SetID(res.InsertedID)
+	return nil
 }
 
 func (w *dbWrapper) Update(ctx context.Context, rec interface{}) error {
@@ -65,7 +74,10 @@ func (w *dbWrapper) Update(ctx context.Context, rec interface{}) error {
 	if err != nil {
 		return err
 	}
-	return coll.UpdateWithCtx(ctx, elem)
+
+	elem.Updating()
+	_, err = w.db.Collection(coll).UpdateOne(ctx, bson.M{"_id": elem.GetID()}, bson.M{"$set": elem})
+	return err
 }
 
 func (w *dbWrapper) Upsert(ctx context.Context, rec interface{}) error {
@@ -74,21 +86,34 @@ func (w *dbWrapper) Upsert(ctx context.Context, rec interface{}) error {
 		return err
 	}
 
-	return coll.UpdateWithCtx(ctx, elem, options.Update().SetUpsert(true))
+	if elem.IsNew() {
+		elem.Creating()
+	} else {
+		elem.Updating()
+	}
+
+	res, err := w.db.Collection(coll).UpdateOne(ctx, bson.M{"_id": elem.GetID()}, bson.M{"$set": elem}, options.Update().SetUpsert(true))
+	if err != nil {
+		return err
+	}
+
+	elem.SetID(res.UpsertedID)
+	return nil
 }
 
 func (w *dbWrapper) UpdateWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
-	coll, err := getCollection(rec)
-	if err != nil {
-		return 0, err
-	}
-
-	res, err := coll.UpdateMany(ctx, opt.GetFilter(opts...), nil, options.Update().SetUpsert(true))
-	if err != nil {
-		return 0, err
-	}
-
-	return res.ModifiedCount, nil
+	return 0, errors.New("method not implemented")
+	//coll, err := getCollection(rec)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//res, err := coll.UpdateMany(ctx, opt.GetFilter(opts...), nil, options.Update().SetUpsert(true))
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//return res.ModifiedCount, nil
 }
 
 func (w *dbWrapper) Delete(ctx context.Context, rec interface{}) error {
@@ -96,20 +121,23 @@ func (w *dbWrapper) Delete(ctx context.Context, rec interface{}) error {
 	if err != nil {
 		return err
 	}
-	return coll.DeleteWithCtx(ctx, elem)
+
+	_, err = w.db.Collection(coll).DeleteOne(ctx, bson.M{"_id": elem.GetID()})
+	return err
 }
 
 func (w *dbWrapper) DeleteWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
-	coll, err := getCollection(rec)
-	if err != nil {
-		return 0, err
-	}
-	res, err := coll.DeleteMany(ctx, opt.GetFilter(opts...))
-	if err != nil {
-		return 0, err
-	}
-
-	return res.DeletedCount, nil
+	return 0, errors.New("method not implemented")
+	//coll, err := getCollection(rec)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//res, err := coll.DeleteMany(ctx, opt.GetFilter(opts...))
+	//if err != nil {
+	//	return 0, err
+	//}
+	//
+	//return res.DeletedCount, nil
 }
 
 func (w *dbWrapper) FindByID(ctx context.Context, rec interface{}) error {
@@ -118,7 +146,12 @@ func (w *dbWrapper) FindByID(ctx context.Context, rec interface{}) error {
 		return err
 	}
 
-	return coll.FindByIDWithCtx(ctx, elem.GetID(), elem)
+	res := w.db.Collection(coll).FindOne(ctx, bson.M{"_id": elem.GetID()})
+	if err != nil {
+		return err
+	}
+
+	return res.Decode(rec)
 }
 
 func (w *dbWrapper) Find(ctx context.Context, rec interface{}, opts []opt.FnOpt) error {
@@ -127,47 +160,51 @@ func (w *dbWrapper) Find(ctx context.Context, rec interface{}, opts []opt.FnOpt)
 		return err
 	}
 
-	return coll.SimpleFindWithCtx(ctx, rec, opt.GetFilter(opts...), opt.GetOptions(opts...))
+	res, err := w.db.Collection(coll).Find(ctx, opt.GetFilter(opts...), opt.GetOptions(opts...))
+	if err != nil {
+		return err
+	}
+	return res.All(ctx, rec)
 }
 
-func getCollectionFromSlice(arr interface{}) (*mgm.Collection, error) {
+func getCollectionFromSlice(arr interface{}) (string, error) {
 	v := reflect.ValueOf(arr).Elem()
 	if v.Kind() != reflect.Slice {
-		return nil, errIncorrectModelInterface
+		return "", errIncorrectModelInterface
 	}
 
 	obj := reflect.New(v.Type().Elem()).Elem().Interface()
 	return getCollection(obj)
 }
 
-func getCollection(item interface{}) (*mgm.Collection, error) {
-	_, ok := item.(mgm.Model)
+func getCollection(item interface{}) (string, error) {
+	_, ok := item.(model.Model)
 	if !ok {
-		return nil, errIncorrectModelInterface
+		return "", errIncorrectModelInterface
 	}
 
 	if field, ok := reflect.TypeOf(item).Elem().FieldByName(fieldCollection); ok {
 		collName := field.Tag.Get("bson")
 		if collName != "" {
-			return mgm.CollectionByName(collName), nil
+			return collName, nil
 		}
 	}
 
-	return nil, errIncorrectModelInterface
+	return "", errIncorrectModelInterface
 }
 
-func getCollectionAndModel(item interface{}) (*mgm.Collection, mgm.Model, error) {
-	v, ok := item.(mgm.Model)
+func getCollectionAndModel(item interface{}) (string, model.Model, error) {
+	v, ok := item.(model.Model)
 	if !ok {
-		return nil, nil, errIncorrectModelInterface
+		return "", nil, errIncorrectModelInterface
 	}
 
 	if field, ok := reflect.TypeOf(item).Elem().FieldByName(fieldCollection); ok {
 		collName := field.Tag.Get("bson")
 		if collName != "" {
-			return mgm.CollectionByName(collName), v, nil
+			return collName, v, nil
 		}
 	}
 
-	return nil, nil, errIncorrectModelInterface
+	return "", nil, errIncorrectModelInterface
 }

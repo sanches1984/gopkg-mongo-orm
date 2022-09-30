@@ -174,13 +174,6 @@ func Contains(column string, val string) FnOpt {
 	}
 }
 
-// Match builds a condition with match statement
-func Match(column string, val string) FnOpt {
-	return func(opt *Opt) {
-		opt.Filter = append(opt.Filter, filter.Match{column: val})
-	}
-}
-
 // Or adds set of conditions joined with OR statement
 func Or(optFn ...FnOpt) FnOpt {
 	return func(opt *Opt) {

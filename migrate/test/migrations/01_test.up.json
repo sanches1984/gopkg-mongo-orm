@@ -3,12 +3,31 @@
     "insert": "books",
     "documents": [
       {
-        "name": "some book",
+        "name": "Some book",
+        "description": "test desc",
         "value": 123
       },
       {
         "name": "other book",
-        "value": 123
+        "description": "test some",
+        "value": 234
+      },
+      {
+        "name": "some 3",
+        "description": "book 4",
+        "value": 345
+      }
+    ]
+  },
+  {
+    "createIndexes": "books",
+    "indexes": [
+      {
+        "name": "search_books_index",
+        "key": {
+          "name": "text",
+          "description": "text"
+        }
       }
     ]
   }

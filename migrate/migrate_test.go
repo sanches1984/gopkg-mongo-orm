@@ -19,6 +19,7 @@ type testItem struct {
 	model.DefaultModel `bson:",inline"`
 	collection         struct{} `bson:"books"`
 	Name               string   `bson:"name"`
+	Description        string   `bson:"description"`
 	Value              int      `bson:"value"`
 }
 
@@ -33,7 +34,7 @@ func TestMigrate_Run(t *testing.T) {
 	require.NoError(t, err)
 
 	item := &testItem{
-		Name:  "some new test name",
+		Name:  "new test name",
 		Value: 567,
 	}
 
@@ -46,11 +47,12 @@ func TestMigrate_Run(t *testing.T) {
 	require.NoError(t, err)
 
 	arr := []*testItem{}
-	err = client.Find(ctx, &arr, opt.List(opt.Eq("name", "some new test name")))
+	err = client.Find(ctx, &arr, opt.List(opt.Or(
+		opt.Contains("name", "some"),
+		opt.Contains("description", "some"),
+	)))
 	require.NoError(t, err)
-	require.Len(t, arr, 1)
-	require.Equal(t, arr[0].Name, "some new test name")
-	require.Equal(t, arr[0].Value, 777)
+	require.Len(t, arr, 3)
 
 	err = client.Delete(ctx, item)
 	require.NoError(t, err)

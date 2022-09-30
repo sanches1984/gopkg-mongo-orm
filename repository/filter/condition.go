@@ -112,14 +112,7 @@ func (c NotIn) Condition() bson.M {
 
 func (c Contains) Condition() bson.M {
 	for key, val := range c {
-		return bson.M{key: bson.M{"$regex": val}}
-	}
-	return nil
-}
-
-func (c Match) Condition() bson.M {
-	for key, val := range c {
-		return bson.M{key: bson.M{"$match": val}}
+		return bson.M{key: bson.M{"$regex": val, "$options": "i"}}
 	}
 	return nil
 }

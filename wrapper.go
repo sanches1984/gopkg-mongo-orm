@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"errors"
+	"github.com/rs/zerolog/log"
 	"github.com/sanches1984/gopkg-mongo-orm/model"
 	"github.com/sanches1984/gopkg-mongo-orm/repository/opt"
 	"go.mongodb.org/mongo-driver/bson"
@@ -35,22 +36,21 @@ func (w *dbWrapper) Close() error {
 
 // WithTX run in transaction (need replica set!)
 func (w *dbWrapper) WithTX(ctx context.Context, fn func(context.Context) error) error {
-	return errors.New("method not implemented")
-	//if !w.hasRS {
-	//	return errNoReplicaSet
-	//}
-	//return mgm.TransactionWithCtx(ctx, func(session mongo.Session, sc mongo.SessionContext) error {
-	//	if err := fn(sc); err != nil {
-	//		rollbackErr := session.AbortTransaction(sc)
-	//		if rollbackErr != nil {
-	//			// todo get logger from context
-	//			log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
-	//		}
-	//		return err
-	//	}
-	//
-	//	return session.CommitTransaction(sc)
-	//})
+	if !w.hasRS {
+		return errNoReplicaSet
+	}
+	return transaction(ctx, w.db.Client(), func(session mongo.Session, sc mongo.SessionContext) error {
+		if err := fn(sc); err != nil {
+			rollbackErr := session.AbortTransaction(sc)
+			if rollbackErr != nil {
+				// todo get logger from context
+				log.Error().Err(rollbackErr).Msg("failed to rollback transaction")
+			}
+			return err
+		}
+
+		return session.CommitTransaction(sc)
+	})
 }
 
 func (w *dbWrapper) Create(ctx context.Context, rec interface{}) error {
@@ -102,18 +102,17 @@ func (w *dbWrapper) Upsert(ctx context.Context, rec interface{}) error {
 }
 
 func (w *dbWrapper) UpdateWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
-	return 0, errors.New("method not implemented")
-	//coll, err := getCollection(rec)
-	//if err != nil {
-	//	return 0, err
-	//}
-	//
-	//res, err := coll.UpdateMany(ctx, opt.GetFilter(opts...), nil, options.Update().SetUpsert(true))
-	//if err != nil {
-	//	return 0, err
-	//}
-	//
-	//return res.ModifiedCount, nil
+	coll, err := getCollection(rec)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := w.db.Collection(coll).UpdateMany(ctx, opt.GetFilter(opts...), nil, options.Update().SetUpsert(true))
+	if err != nil {
+		return 0, err
+	}
+
+	return res.ModifiedCount, nil
 }
 
 func (w *dbWrapper) Delete(ctx context.Context, rec interface{}) error {
@@ -127,17 +126,17 @@ func (w *dbWrapper) Delete(ctx context.Context, rec interface{}) error {
 }
 
 func (w *dbWrapper) DeleteWhere(ctx context.Context, rec interface{}, opts []opt.FnOpt) (int64, error) {
-	return 0, errors.New("method not implemented")
-	//coll, err := getCollection(rec)
-	//if err != nil {
-	//	return 0, err
-	//}
-	//res, err := coll.DeleteMany(ctx, opt.GetFilter(opts...))
-	//if err != nil {
-	//	return 0, err
-	//}
-	//
-	//return res.DeletedCount, nil
+	coll, err := getCollection(rec)
+	if err != nil {
+		return 0, err
+	}
+
+	res, err := w.db.Collection(coll).DeleteMany(ctx, opt.GetFilter(opts...))
+	if err != nil {
+		return 0, err
+	}
+
+	return res.DeletedCount, nil
 }
 
 func (w *dbWrapper) FindByID(ctx context.Context, rec interface{}) error {
